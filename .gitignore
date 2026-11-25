@@ -58,4 +58,4 @@ dmypy.json
 Thumbs.db
 
 # Logs
-*.log
+*.log.cache/
