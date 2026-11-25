@@ -20,8 +20,6 @@ query SearchMergedPRs($query: String!, $first: Int!, $after: String) {
         updatedAt
         closedAt
         mergedAt
-        baseRefOid
-        headRefOid
         baseRefName
         headRefName
         url

@@ -271,8 +271,8 @@ class GitHubClient:
                 merged_at=datetime.fromisoformat(node["mergedAt"].replace("Z", "+00:00"))
                 if node.get("mergedAt")
                 else None,
-                base_sha=node.get("baseRefOid", ""),
-                head_sha=node.get("headRefOid", ""),
+                base_sha="",  # Will be populated by fetch_pr_details via REST API
+                head_sha="",  # Will be populated by fetch_pr_details via REST API
                 base_ref=node.get("baseRefName", ""),
                 head_ref=node.get("headRefName", ""),
                 html_url=node.get("url", ""),

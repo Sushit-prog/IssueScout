@@ -124,7 +124,7 @@ class TestGitHubClient:
         mock_get.assert_called_once_with("/repos/owner/repo/pulls/123")
 
     def test_fetch_merged_prs_page_parses_graphql_response(self) -> None:
-        """Test parsing of GraphQL search response."""
+        """Test parsing of GraphQL search response (base_sha comes from REST later)."""
         fixture = load_fixture("search_prs_response.json")
 
         with patch.object(self.client, "_graphql", return_value=fixture):
@@ -133,9 +133,22 @@ class TestGitHubClient:
         assert len(page.nodes) == 2
         assert page.nodes[0].number == 123
         assert page.nodes[0].closing_issues == [456]
+        assert page.nodes[0].base_sha == ""  # GraphQL no longer provides baseRefOid
         assert page.nodes[1].number == 124
         assert page.nodes[1].closing_issues == []
+        assert page.nodes[1].base_sha == ""
         assert page.total_count == 2
+
+    def test_fetch_pr_details_pins_base_sha_from_rest_fixture(self) -> None:
+        """Test that base_commit_sha is pinned to base.sha from REST response fixture."""
+        fixture = load_fixture("pr_details_response.json")
+
+        with patch.object(self.client, "_rest_get", return_value=fixture) as mock_get:
+            pr = self.client.fetch_pr_details("owner", "repo", 123)
+
+        assert pr.base_sha == "base_sha_from_rest"
+        assert pr.closing_issues == [456]
+        mock_get.assert_called_once_with("/repos/owner/repo/pulls/123")
 
     def test_rate_limit_sleep_with_fake_clock(self) -> None:
         """Test that rate limit handling sleeps until reset using fake clock."""

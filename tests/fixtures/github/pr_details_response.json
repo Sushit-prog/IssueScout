@@ -1,0 +1,21 @@
+{
+  "number": 123,
+  "title": "Fix authentication bug",
+  "body": "This fixes the login issue. Closes #456",
+  "state": "closed",
+  "merged": true,
+  "mergeable": true,
+  "created_at": "2024-06-15T10:00:00Z",
+  "updated_at": "2024-06-16T12:00:00Z",
+  "closed_at": "2024-06-16T12:00:00Z",
+  "merged_at": "2024-06-16T12:00:00Z",
+  "base": {
+    "sha": "base_sha_from_rest",
+    "ref": "main"
+  },
+  "head": {
+    "sha": "head_sha_from_rest",
+    "ref": "fix-auth"
+  },
+  "html_url": "https://github.com/owner/repo/pull/123"
+}
