@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 
 from issuescout.bench.config import BenchConfig, RepoConfig
 from issuescout.bench.filters import (
+    DropReason,
     _compute_changed_files_with_locatable,
     _compute_gold_files_all,
     _compute_gold_files_source,
@@ -181,7 +182,7 @@ def process_pr(
 
     # Drop if base_commit_sha is missing/empty
     if not base_commit_sha:
-        logger.debug(f"PR #{pr.number} dropped: base_sha_missing")
+        logger.debug(f"PR #{pr.number} dropped: {DropReason.BASE_SHA_MISSING}")
         return None
 
     return pr_to_benchmark_example(

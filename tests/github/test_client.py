@@ -240,6 +240,7 @@ class TestGitHubClient:
     def test_no_token_leak_in_logs_or_exceptions(self) -> None:
         """Test that the token never appears in logs, exceptions, or cache."""
         import secrets
+
         sentinel = f"ghp_{secrets.token_hex(20)}"  # Random token
         client = GitHubClient(
             token=sentinel,
@@ -284,6 +285,7 @@ class TestGitHubClient:
             if cache_dir.exists():
                 for cache_file in cache_dir.rglob("*.json.gz"):
                     import gzip
+
                     with gzip.open(cache_file, "rt") as f:
                         content = f.read()
                         assert sentinel not in content, f"Token leaked in cache file: {cache_file}"

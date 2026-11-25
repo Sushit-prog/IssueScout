@@ -35,9 +35,7 @@ BASE_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 def _validate_base_sha(v: str) -> str:
     """Validate base_commit_sha is exactly 40 lowercase hex characters."""
     if not BASE_SHA_PATTERN.match(v):
-        raise ValueError(
-            "base_commit_sha must be exactly 40 lowercase hex characters"
-        )
+        raise ValueError("base_commit_sha must be exactly 40 lowercase hex characters")
     return v
 
 

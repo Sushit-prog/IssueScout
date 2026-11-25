@@ -153,6 +153,8 @@ class TestEnvLoading:
     def test_load_env_creates_no_side_effect_if_no_file(self, tmp_path, monkeypatch):
         """load_env does nothing if .env doesn't exist."""
         monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.delenv("LLM_MODEL", raising=False)
         # Ensure no .env file
         load_env()
         # No exception, no env var set
@@ -163,6 +165,8 @@ class TestEnvLoading:
         env_file = tmp_path / ".env"
         env_file.write_text("GITHUB_TOKEN=ghp_test123\nLLM_MODEL=gpt-4o-mini\n")
         monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.delenv("LLM_MODEL", raising=False)
 
         load_env()
 

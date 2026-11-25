@@ -110,6 +110,7 @@ To regenerate the dataset with the same results:
 1. Use the same `configs/bench.toml` configuration
 2. Clear `.cache/github/` to force fresh GitHub API calls
 3. Set `GITHUB_TOKEN` environment variable
-4. Run: `uv run python -m issuescout.bench.cli --config configs/bench.toml --out data/bench.jsonl`
+4. Run: `uv run python -m issuescout.bench.mine --config configs/bench.toml --out data/bench.jsonl`
+   (or use the installed script: `issuescout-mine --config configs/bench.toml --out data/bench.jsonl`)
 
 The miner is resumable: already-processed PR numbers are tracked via the output JSONL file.
