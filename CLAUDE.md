@@ -95,3 +95,14 @@ configs/         # Non-secret settings (committed)
 ## Wrong Premise Rule
 - If a requested change rests on a wrong premise, say so in one line and stop.
 - Never commit files whose only purpose is to record that a check was done.
+
+## Commands
+- Lint: `uv run ruff check`
+- Format check: `uv run ruff format --check`
+- Format: `uv run ruff format`
+- Type check: `uv run mypy src`
+- Full tests: `uv run pytest -q`
+- Single test file: `uv run pytest -q tests/path/to/test_file.py`
+
+## Done means
+ruff, mypy and pytest all pass, and the Stop hook verifies this.

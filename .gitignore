@@ -63,3 +63,6 @@ Thumbs.db
 .cache/
 data/*
 !data/README.md
+
+# Claude Code
+.claude/settings.local.json
