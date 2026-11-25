@@ -18,5 +18,5 @@ class Citation(BaseModel):
     def __str__(self) -> str:
         loc = f"{self.path}:{self.line_start}-{self.line_end}"
         if self.symbol:
-            return f"{loc}::{self.symbol} @ {self.commit_sha[:9]}"
-        return f"{loc} @ {self.commit_sha[:9]}"
+            return f"{loc}::{self.symbol} @ {self.commit_sha[:8]}"
+        return f"{loc} @ {self.commit_sha[:8]}"

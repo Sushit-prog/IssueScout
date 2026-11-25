@@ -152,10 +152,10 @@ class TestCitation:
             symbol="validate_password",
             line_start=10,
             line_end=25,
-            commit_sha="abc123def456789",
+            commit_sha="a" * 40,
             rationale="Handles password validation logic",
         )
-        assert str(cite) == "src/auth.py:10-25::validate_password @ abc123def"
+        assert str(cite) == "src/auth.py:10-25::validate_password @ " + "a" * 8
 
     def test_str_representation_without_symbol(self):
         """Test string representation without symbol."""
@@ -163,10 +163,10 @@ class TestCitation:
             path="src/auth.py",
             line_start=1,
             line_end=50,
-            commit_sha="abc123def456789",
+            commit_sha="a" * 40,
             rationale="Entire file relevant",
         )
-        assert str(cite) == "src/auth.py:1-50 @ abc123def"
+        assert str(cite) == "src/auth.py:1-50 @ " + "a" * 8
 
     def test_validation_rejects_invalid_line_start(self):
         """Test that line_start must be >= 1."""
