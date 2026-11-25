@@ -202,6 +202,72 @@ class TestCitation:
                 extra_field="bad",
             )
 
+    def test_validation_rejects_empty_path(self):
+        """Test that empty path is rejected."""
+        with pytest.raises(ValidationError):
+            Citation(
+                path="",
+                line_start=1,
+                line_end=10,
+                commit_sha="sha",
+                rationale="test",
+            )
+
+    def test_validation_rejects_absolute_path(self):
+        """Test that absolute path is rejected."""
+        with pytest.raises(ValidationError):
+            Citation(
+                path="/src/auth.py",
+                line_start=1,
+                line_end=10,
+                commit_sha="sha",
+                rationale="test",
+            )
+
+    def test_validation_rejects_backslash_path(self):
+        """Test that Windows-style backslash path is rejected."""
+        with pytest.raises(ValidationError):
+            Citation(
+                path="src\\auth.py",
+                line_start=1,
+                line_end=10,
+                commit_sha="sha",
+                rationale="test",
+            )
+
+    def test_validation_rejects_dotdot_path(self):
+        """Test that path with '..' segments is rejected."""
+        with pytest.raises(ValidationError):
+            Citation(
+                path="src/../auth.py",
+                line_start=1,
+                line_end=10,
+                commit_sha="sha",
+                rationale="test",
+            )
+
+    def test_validation_rejects_dot_path(self):
+        """Test that path with '.' segments is rejected."""
+        with pytest.raises(ValidationError):
+            Citation(
+                path="src/./auth.py",
+                line_start=1,
+                line_end=10,
+                commit_sha="sha",
+                rationale="test",
+            )
+
+    def test_validation_rejects_line_end_before_line_start(self):
+        """Test that line_end < line_start is rejected."""
+        with pytest.raises(ValidationError):
+            Citation(
+                path="src/auth.py",
+                line_start=10,
+                line_end=5,
+                commit_sha="sha",
+                rationale="test",
+            )
+
     def test_round_trip_serialization(self):
         """Test JSON round-trip serialization."""
         cite = Citation(
