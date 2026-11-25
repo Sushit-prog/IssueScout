@@ -1,6 +1,7 @@
 """Citation model for verified file/symbol references."""
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic_core import core_schema
 
 
 def _validate_path(path: str) -> str:
@@ -19,7 +20,7 @@ def _validate_path(path: str) -> str:
     return path
 
 
-def _validate_line_end(line_end: int, values) -> int:
+def _validate_line_end(line_end: int, values: core_schema.ValidationInfo) -> int:
     """Validate that line_end >= line_start."""
     line_start = values.data.get("line_start")
     if line_start is not None and line_end < line_start:

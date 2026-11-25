@@ -21,8 +21,12 @@ src/issuescout/
 ├── agent/       # Agent orchestration
 ├── readiness/   # Deterministic readiness report (zero LLM calls)
 ├── api/         # API layer
-└── worker/      # Background workers
+├── worker/      # Background workers
+├── llm/         # LLM wrapper (ONLY place litellm is imported; token budget, cost cap, logging)
+└── github/      # GitHub HTTP client (ONLY place GitHub HTTP calls happen)
 tests/           # Mirrors src/ structure
+tests/fixtures/  # Recorded GitHub API responses for tests
+configs/         # Non-secret settings (committed)
 ```
 
 ## Core Rules
@@ -30,12 +34,13 @@ tests/           # Mirrors src/ structure
 ### Typing & Boundaries
 - Every module has typed Pydantic models at its boundary
 - No untyped `dict` crossing module boundaries
-- All models use `model_config = ConfigDict(extra='forbid')`
+- All models use `model_config = ConfigDict(extra="forbid", frozen=True)`
 
 ### LLM Calls
-- LLM calls ONLY through `src/issuescout/tools/llm.py` wrapper (litellm)
+- LLM calls ONLY through `src/issuescout/llm/` wrapper (litellm)
 - Wrapper enforces per-run token and cost budget
 - Wrapper logs every call
+- The LLM wrapper enforces a hard per-run cost cap in addition to the token budget, and aborts the run when exceeded
 - NO direct provider SDK calls anywhere else
 
 ### Tool Safety
@@ -56,13 +61,25 @@ tests/           # Mirrors src/ structure
 
 ### Security
 - No secrets in code
-- Config via env vars only
+- Config via env vars only; non-secret settings may live in committed files under `configs/`
 - `.env.example` committed to repo
+- Never log tokens, keys or Authorization headers
+
+### Verification
+- The verifier checks paths and symbols against git objects at the cited commit (git cat-file / ls-tree), never against the working tree
+- Citation paths are repo-relative, POSIX-style, no ".." segments
 
 ### Quality Gates
 - Every feature ships with tests in the same change
 - Run `ruff check`, `ruff format`, `mypy`, `pytest` before declaring anything done
 - Commit in small steps with clear messages
+
+### Source Code Style
+- Source files use LF line endings; use pathlib, not string path manipulation
+
+### Test Discipline
+- Tests never touch the network; GitHub responses come from recorded fixtures under `tests/fixtures/`
+- Never change production code to make a test pass, or a test to make code pass, without stating which and why in the commit message and in your summary. If a test and the code disagree, stop and ask me.
 
 ## Development Workflow
 1. Plan in small increments
