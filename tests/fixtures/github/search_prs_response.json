@@ -1,0 +1,57 @@
+{
+  "data": {
+    "search": {
+      "issueCount": 2,
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": null
+      },
+      "nodes": [
+        {
+          "number": 123,
+          "title": "Fix authentication bug",
+          "body": "This fixes the login issue. Closes #456",
+          "state": "MERGED",
+          "merged": true,
+          "mergeable": true,
+          "createdAt": "2024-06-15T10:00:00Z",
+          "updatedAt": "2024-06-16T12:00:00Z",
+          "closedAt": "2024-06-16T12:00:00Z",
+          "mergedAt": "2024-06-16T12:00:00Z",
+          "baseRefOid": "base_sha_123",
+          "headRefOid": "head_sha_123",
+          "baseRefName": "main",
+          "headRefName": "fix-auth",
+          "url": "https://github.com/owner/repo/pull/123",
+          "closingIssuesReferences": {
+            "nodes": [
+              {
+                "number": 456
+              }
+            ]
+          }
+        },
+        {
+          "number": 124,
+          "title": "Update docs",
+          "body": "Just documentation updates",
+          "state": "MERGED",
+          "merged": true,
+          "mergeable": true,
+          "createdAt": "2024-06-10T10:00:00Z",
+          "updatedAt": "2024-06-11T12:00:00Z",
+          "closedAt": "2024-06-11T12:00:00Z",
+          "mergedAt": "2024-06-11T12:00:00Z",
+          "baseRefOid": "base_sha_124",
+          "headRefOid": "head_sha_124",
+          "baseRefName": "main",
+          "headRefName": "update-docs",
+          "url": "https://github.com/owner/repo/pull/124",
+          "closingIssuesReferences": {
+            "nodes": []
+          }
+        }
+      ]
+    }
+  }
+}
