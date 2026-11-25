@@ -15,7 +15,6 @@ from issuescout.bench.filters import (
     filter_not_generated_only,
     filter_not_lockfile_only,
 )
-from issuescout.bench.mine import mine_repo, monthly_windows, process_pr, run_mining
 from issuescout.bench.report import generate_report, print_report
 
 __all__ = [

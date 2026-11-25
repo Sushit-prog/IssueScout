@@ -1,9 +1,14 @@
 """Benchmark mining orchestration."""
 
+import argparse
 import json
 import logging
+import os
+import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 from issuescout.bench.config import BenchConfig, RepoConfig
 from issuescout.bench.filters import (
@@ -18,6 +23,32 @@ from issuescout.github.models import ChangedFileData, FileStatus, IssueData, PRD
 from issuescout.models import BenchmarkExample, ChangedFile, IssueRef, SplitTag
 
 logger = logging.getLogger(__name__)
+
+
+def load_env() -> None:
+    """Load .env file from current directory if it exists.
+
+    Real environment variables take precedence over .env (override=False).
+    """
+    from pathlib import Path
+
+    # Explicitly use current working directory to find .env
+    # (python-dotenv uses os.environ.get('PWD') which may not match os.getcwd()
+    # after monkeypatch.chdir in tests)
+    dotenv_path = Path.cwd() / ".env"
+    load_dotenv(dotenv_path=dotenv_path, override=False)
+
+
+def check_github_token() -> str:
+    """Check for GITHUB_TOKEN and return it, or exit with error."""
+    token = os.environ.get("GITHUB_TOKEN", "")
+    if not token:
+        print(
+            "Error: GITHUB_TOKEN not set. Set it in .env or the environment.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return token
 
 
 def monthly_windows(since: datetime, until: datetime) -> list[tuple[datetime, datetime]]:
@@ -252,9 +283,7 @@ def mine_repo(
 
 def run_mining(config: BenchConfig) -> dict[str, dict[str, int]]:
     """Run benchmark mining for all configured repositories."""
-    import os
-
-    token = os.environ.get("GITHUB_TOKEN", "")
+    token = check_github_token()
     client = GitHubClient(token=token, cache=ResponseCache(config.cache_dir_abs))
     all_stats = {}
 
@@ -265,3 +294,132 @@ def run_mining(config: BenchConfig) -> dict[str, dict[str, int]]:
         logger.info(f"Completed {repo_config.owner}/{repo_config.name}: {stats}")
 
     return all_stats
+
+
+def setup_logging(verbose: bool) -> None:
+    """Configure logging."""
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+
+def load_config(config_path: Path) -> BenchConfig:
+    """Load configuration from TOML file."""
+    import tomllib
+    from datetime import UTC, datetime
+
+    with open(config_path, "rb") as f:
+        data = tomllib.load(f)
+
+    # Parse repos
+    from issuescout.bench.config import RepoConfig
+
+    repos = []
+    for repo_data in data.get("repos", []):
+        repo = RepoConfig(
+            owner=repo_data["owner"],
+            name=repo_data["name"],
+            max_prs=repo_data.get("max_prs", 500),
+            since=(
+                datetime.fromisoformat(repo_data["since"].replace("Z", "+00:00")).replace(
+                    tzinfo=UTC
+                )
+                if repo_data.get("since")
+                else None
+            ),
+            until=(
+                datetime.fromisoformat(repo_data["until"].replace("Z", "+00:00")).replace(
+                    tzinfo=UTC
+                )
+                if repo_data.get("until")
+                else None
+            ),
+        )
+        repos.append(repo)
+
+    return BenchConfig(
+        repos=repos,
+        leakage_cutoff=datetime.fromisoformat(
+            data["leakage_cutoff"].replace("Z", "+00:00")
+        ).replace(tzinfo=UTC),
+        out_path=Path(data.get("out_path", "data/bench.jsonl")),
+        cache_dir=Path(data.get("cache_dir", ".cache/github")),
+        max_concurrent=data.get("max_concurrent", 1),
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Main CLI entry point."""
+    parser = argparse.ArgumentParser(
+        prog="python -m issuescout.bench.mine",
+        description="Mine benchmark examples from GitHub PRs",
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=Path("configs/bench.toml"),
+        help="Path to benchmark config TOML",
+    )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        help="Override output JSONL path",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable debug logging",
+    )
+    args = parser.parse_args(argv)
+
+    # Load .env at CLI startup
+    load_env()
+
+    setup_logging(args.verbose)
+
+    try:
+        config = load_config(args.config)
+    except Exception as e:
+        logging.error(f"Failed to load config: {e}")
+        return 1
+
+    if args.out:
+        config = BenchConfig(
+            repos=config.repos,
+            leakage_cutoff=config.leakage_cutoff,
+            out_path=args.out,
+            cache_dir=config.cache_dir,
+            max_concurrent=config.max_concurrent,
+        )
+
+    # Ensure output directory exists
+    config.out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        stats = run_mining(config)
+        print("\n=== Mining Complete ===")
+        for repo, repo_stats in stats.items():
+            print(
+                f"  {repo}: processed={repo_stats['processed']} "
+                f"kept={repo_stats['kept']} dropped={repo_stats['dropped']} "
+                f"errors={repo_stats['errors']}"
+            )
+        return 0
+    except KeyboardInterrupt:
+        logging.info("Interrupted by user")
+        return 130
+    except Exception as e:
+        logging.error(f"Mining failed: {e}")
+        if args.verbose:
+            import traceback
+
+            traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
