@@ -12,7 +12,6 @@ class LocalizationResult(BaseModel):
 
     candidates: list[Candidate] = Field(description="Ranked candidate list")
     budget_used: dict[str, float] = Field(
-        default_factory=dict,
-        description="Token/cost budget consumed (e.g., 'tokens', 'usd')"
+        default_factory=dict, description="Token/cost budget consumed (e.g., 'tokens', 'usd')"
     )
     trace_id: str = Field(description="Unique trace ID for this localization run")

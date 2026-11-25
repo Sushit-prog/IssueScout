@@ -14,5 +14,5 @@ class Candidate(BaseModel):
     score: float = Field(ge=0.0, le=1.0, description="Confidence score [0, 1]")
     evidence: list[str] = Field(
         default_factory=list,
-        description="Human-readable evidence strings supporting this candidate"
+        description="Human-readable evidence strings supporting this candidate",
     )

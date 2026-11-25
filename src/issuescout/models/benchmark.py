@@ -1,6 +1,7 @@
 """Benchmark example model."""
 
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict
 
 from issuescout.models.issue_ref import IssueRef
