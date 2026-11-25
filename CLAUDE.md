@@ -91,3 +91,7 @@ configs/         # Non-secret settings (committed)
 ## Tool Execution Rules
 - Always run tools via `uv run` (never bare `python`, `pytest`, `ruff`, or `mypy`)
 - One commit per logical unit; show `git diff --stat` after each commit
+
+## Wrong Premise Rule
+- If a requested change rests on a wrong premise, say so in one line and stop.
+- Never commit files whose only purpose is to record that a check was done.
