@@ -20,7 +20,13 @@ def get_bare_repo_path(cache_dir: Path, owner: str, repo: str) -> Path:
     return cache_dir / safe_name
 
 
-def ensure_bare_repo(cache_dir: Path, owner: str, repo: str, timeout: float = 60.0) -> Path:
+def ensure_bare_repo(
+    cache_dir: Path,
+    owner: str,
+    repo: str,
+    timeout: float = 60.0,
+    origin_url: str | None = None,
+) -> Path:
     """Ensure a bare repository exists and is up to date.
 
     Creates the bare repo if it doesn't exist, then fetches the latest
@@ -31,6 +37,8 @@ def ensure_bare_repo(cache_dir: Path, owner: str, repo: str, timeout: float = 60
         owner: Repository owner
         repo: Repository name
         timeout: Timeout in seconds for git operations
+        origin_url: Optional custom origin URL. If not provided, uses
+            GitHub HTTPS URL. Can be a local file:// path.
 
     Returns:
         Path to the bare repository
@@ -39,13 +47,16 @@ def ensure_bare_repo(cache_dir: Path, owner: str, repo: str, timeout: float = 60
         CheckoutError: If git operations fail
     """
     repo_path = get_bare_repo_path(cache_dir, owner, repo)
-    origin_url = f"https://github.com/{owner}/{repo}.git"
+
+    # Default to GitHub HTTPS if no custom origin provided
+    if origin_url is None:
+        origin_url = f"https://github.com/{owner}/{repo}.git"
 
     # Ensure cache directory exists
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     if not repo_path.exists():
-        logger.info(f"Cloning bare repository: {owner}/{repo}")
+        logger.info(f"Cloning bare repository: {origin_url} -> {repo_path}")
         try:
             _run_git(
                 ["clone", "--bare", origin_url, str(repo_path)],
@@ -53,12 +64,12 @@ def ensure_bare_repo(cache_dir: Path, owner: str, repo: str, timeout: float = 60
                 cwd=cache_dir,
             )
         except subprocess.CalledProcessError as e:
-            raise CheckoutError(f"Failed to clone {owner}/{repo}: {e.stderr}") from e
+            raise CheckoutError(f"Failed to clone {origin_url}: {e.stderr}") from e
     else:
         logger.debug(f"Bare repository exists: {repo_path}")
 
     # Always fetch to update refs (idempotent)
-    logger.debug(f"Fetching updates for {owner}/{repo}")
+    logger.debug(f"Fetching updates from origin for {owner}/{repo}")
     try:
         _run_git(
             ["fetch", "origin", "--prune", "--tags"],
@@ -66,7 +77,7 @@ def ensure_bare_repo(cache_dir: Path, owner: str, repo: str, timeout: float = 60
             cwd=repo_path,
         )
     except subprocess.CalledProcessError as e:
-        raise CheckoutError(f"Failed to fetch {owner}/{repo}: {e.stderr}") from e
+        raise CheckoutError(f"Failed to fetch {origin_url}: {e.stderr}") from e
 
     return repo_path
 

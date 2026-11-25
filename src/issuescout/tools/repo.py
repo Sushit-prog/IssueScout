@@ -274,62 +274,86 @@ def read_files_batch(
     input_data = "\n".join(f"{commit_sha}:{fp}" for fp in file_paths) + "\n"
 
     try:
+        # Use binary mode to handle raw blob data correctly
         result = subprocess.run(
             ["git", "cat-file", "--batch"],
             cwd=bare_repo_path,
-            input=input_data,
+            input=input_data.encode("utf-8"),
             capture_output=True,
-            text=True,
             timeout=60.0,
             check=True,
         )
     except subprocess.CalledProcessError as e:
-        raise RepoError(f"git cat-file --batch failed: {e.stderr}") from e
+        raise RepoError(
+            f"git cat-file --batch failed: {e.stderr.decode('utf-8', errors='replace')}"
+        ) from e
 
     contents = {}
-    lines = result.stdout.splitlines()
-    line_idx = 0
+    stdout = result.stdout
     file_idx = 0
-    while line_idx < len(lines) and file_idx < len(file_paths):
-        line = lines[line_idx].strip()
-        if not line:
-            line_idx += 1
+    offset = 0
+
+    while offset < len(stdout) and file_idx < len(file_paths):
+        # Find end of header line (newline)
+        header_end = stdout.find(b"\n", offset)
+        if header_end == -1:
+            break
+        header_line = stdout[offset:header_end].decode("utf-8", errors="replace").strip()
+        offset = header_end + 1
+
+        if not header_line:
             continue
 
         # Header line: <sha> <type> <size>
-        parts = line.split()
+        parts = header_line.split()
         if len(parts) != 3:
-            logger.warning(f"Unexpected cat-file output: {line}")
-            line_idx += 1
+            logger.warning(f"Unexpected cat-file output: {header_line}")
+            file_idx += 1
             continue
 
         obj_sha, obj_type, size_str = parts
-        size = int(size_str)
+        try:
+            size = int(size_str)
+        except ValueError:
+            logger.warning(f"Invalid size in cat-file output: {size_str}")
+            file_idx += 1
+            continue
 
         if obj_type != "blob":
             # Missing or not a blob - skip
-            line_idx += 1
             file_idx += 1
             continue
 
         if size > max_size:
             logger.warning(f"File too large, skipping: {file_paths[file_idx]} ({size} bytes)")
-            line_idx += 1
+            # Skip the blob data
+            offset += size
+            # Skip trailing newline after blob data
+            if offset < len(stdout) and stdout[offset : offset + 1] == b"\n":
+                offset += 1
             file_idx += 1
             continue
 
-        # Next line(s) contain the blob data
-        line_idx += 1
-        if line_idx >= len(lines):
+        # Read blob data (exact size bytes)
+        if offset + size > len(stdout):
+            logger.warning(f"Truncated blob data for {file_paths[file_idx]}")
             break
 
-        # The blob data may span multiple lines; read exact size
-        # Since we used text mode, we need to be careful
-        # Better approach: read the raw bytes
-        # For now, assume single-line content (common for source files)
-        content = lines[line_idx]
+        blob_data = stdout[offset : offset + size]
+        offset += size
+
+        # Skip trailing newline after blob data
+        if offset < len(stdout) and stdout[offset : offset + 1] == b"\n":
+            offset += 1
+
+        # Decode blob content
+        try:
+            content = blob_data.decode("utf-8")
+        except UnicodeDecodeError:
+            content = blob_data.decode("utf-8", errors="replace")
+            logger.warning(f"Non-UTF-8 content in {file_paths[file_idx]}, replaced invalid chars")
+
         contents[file_paths[file_idx]] = content
-        line_idx += 1
         file_idx += 1
 
     return contents

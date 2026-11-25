@@ -1,0 +1,1 @@
+{"owner": "local", "repo": "flask_test", "base_commit": "e0b6f0e49fedf1872d33232f9c450130d3f244a0", "issue_text": "Login fails with correct credentials when using remember me cookie", "gold_files": ["src/flask/login.py", "src/flask/helpers.py"], "origin_url": "C:/Users/pakra/Desktop/Projects/issuescout/test_repos/flask_test"}
