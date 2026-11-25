@@ -1,0 +1,23 @@
+# IssueScout benchmark mining configuration
+# See docs/config-schema.md for full schema documentation.
+
+[bench]
+leakage_cutoff = "2025-06-01T00:00:00Z"
+cache_dir = ".cache/github"
+output_dir = "data"
+max_concurrent = 1
+
+[[repos]]
+owner = "django"
+name = "django"
+max_prs = 50
+
+[[repos]]
+owner = "psf"
+name = "requests"
+max_prs = 50
+
+[[repos]]
+owner = "huggingface"
+name = "transformers"
+max_prs = 50
