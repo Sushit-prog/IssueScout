@@ -2,8 +2,8 @@
 """Stop hook that runs lint, type-check, and tests before stopping."""
 
 import json
-import sys
 import subprocess
+import sys
 
 
 def run_cmd(cmd: list[str], timeout: int = 120) -> tuple[int, str, str]:

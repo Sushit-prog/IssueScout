@@ -2,8 +2,8 @@
 """PostToolUse hook to auto-format Python files with ruff."""
 
 import json
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 
