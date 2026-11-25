@@ -59,7 +59,7 @@ class TestBenchmarkExample:
         issue = IssueRef(owner="octocat", repo="Hello-World", number=42)
         example = BenchmarkExample(
             issue=issue,
-            base_commit_sha="abc123def456",
+            base_commit_sha="abcdef1234567890abcdef1234567890abcdef12",
             issue_title="Fix bug in login",
             issue_body="Login fails when password is empty",
             gold_files_all=["src/auth.py", "tests/test_auth.py"],
@@ -87,11 +87,87 @@ class TestBenchmarkExample:
             split_tag=SplitTag.POST_CUTOFF,
         )
         assert example.issue == issue
-        assert example.base_commit_sha == "abc123def456"
+        assert example.base_commit_sha == "abcdef1234567890abcdef1234567890abcdef12"
         assert example.pr_number == 100
         assert example.gold_files_all == ["src/auth.py", "tests/test_auth.py"]
         assert example.gold_files_source == ["src/auth.py"]
         assert example.split_tag == SplitTag.POST_CUTOFF
+
+    def test_validation_rejects_empty_base_sha(self):
+        """Test that empty base_commit_sha is rejected."""
+        issue = IssueRef(owner="octocat", repo="Hello-World", number=42)
+        with pytest.raises(ValidationError):
+            BenchmarkExample(
+                issue=issue,
+                base_commit_sha="",
+                issue_title="Fix bug",
+                issue_body="Body",
+                gold_files_all=[],
+                gold_files_source=[],
+                pr_number=1,
+                merged_at=datetime.now(UTC),
+                issue_created_at=datetime.now(UTC),
+                pr_opened_at=datetime.now(UTC),
+                changed_files=[],
+                split_tag=SplitTag.PRE_CUTOFF,
+            )
+
+    def test_validation_rejects_short_base_sha(self):
+        """Test that short base_commit_sha is rejected."""
+        issue = IssueRef(owner="octocat", repo="Hello-World", number=42)
+        with pytest.raises(ValidationError):
+            BenchmarkExample(
+                issue=issue,
+                base_commit_sha="abc123",  # Too short
+                issue_title="Fix bug",
+                issue_body="Body",
+                gold_files_all=[],
+                gold_files_source=[],
+                pr_number=1,
+                merged_at=datetime.now(UTC),
+                issue_created_at=datetime.now(UTC),
+                pr_opened_at=datetime.now(UTC),
+                changed_files=[],
+                split_tag=SplitTag.PRE_CUTOFF,
+            )
+
+    def test_validation_rejects_uppercase_base_sha(self):
+        """Test that uppercase base_commit_sha is rejected (must be lowercase)."""
+        issue = IssueRef(owner="octocat", repo="Hello-World", number=42)
+        with pytest.raises(ValidationError):
+            BenchmarkExample(
+                issue=issue,
+                base_commit_sha="ABCDEF1234567890ABCDEF1234567890ABCDEF12",  # Uppercase
+                issue_title="Fix bug",
+                issue_body="Body",
+                gold_files_all=[],
+                gold_files_source=[],
+                pr_number=1,
+                merged_at=datetime.now(UTC),
+                issue_created_at=datetime.now(UTC),
+                pr_opened_at=datetime.now(UTC),
+                changed_files=[],
+                split_tag=SplitTag.PRE_CUTOFF,
+            )
+
+    def test_validation_accepts_valid_base_sha(self):
+        """Test that valid 40-char lowercase hex base_commit_sha is accepted."""
+        issue = IssueRef(owner="octocat", repo="Hello-World", number=42)
+        example = BenchmarkExample(
+            issue=issue,
+            base_commit_sha="abcdef1234567890abcdef1234567890abcdef12",
+            issue_title="Fix bug",
+            issue_body="Body",
+            gold_files_all=[],
+            gold_files_source=[],
+            pr_number=1,
+            merged_at=datetime.now(UTC),
+            issue_created_at=datetime.now(UTC),
+            pr_opened_at=datetime.now(UTC),
+            changed_files=[],
+            split_tag=SplitTag.PRE_CUTOFF,
+        )
+        assert example.base_commit_sha == "abcdef1234567890abcdef1234567890abcdef12"
 
     def test_validation_rejects_extra_fields(self):
         """Test that extra fields are rejected."""
@@ -117,7 +193,7 @@ class TestBenchmarkExample:
         issue = IssueRef(owner="octocat", repo="Hello-World", number=42)
         example = BenchmarkExample(
             issue=issue,
-            base_commit_sha="abc123def456",
+            base_commit_sha="abcdef1234567890abcdef1234567890abcdef12",
             issue_title="Fix bug in login",
             issue_body="Login fails when password is empty",
             gold_files_all=["src/auth.py", "tests/test_auth.py"],
@@ -153,7 +229,7 @@ class TestBenchmarkExample:
         issue = IssueRef(owner="octocat", repo="Hello-World", number=42)
         example = BenchmarkExample(
             issue=issue,
-            base_commit_sha="abc123def456",
+            base_commit_sha="abcdef1234567890abcdef1234567890abcdef12",
             issue_title="Fix bug in login",
             issue_body="Login fails when password is empty",
             gold_files_all=["src/auth.py", "tests/test_auth.py"],

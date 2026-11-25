@@ -19,6 +19,7 @@ class DropReason(StrEnum):
     EMPTY_ISSUE_BODY = "empty_issue_body"
     GOLD_FILES_SOURCE_EMPTY = "gold_files_source_empty"
     NO_LOCATABLE_SOURCE_FILE = "no_locatable_source_file"
+    BASE_SHA_MISSING = "base_sha_missing"
 
 
 def filter_exactly_one_closing_issue(pr: PRDetails) -> DropReason | None:

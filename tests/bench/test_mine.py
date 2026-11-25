@@ -358,7 +358,7 @@ class TestMineRepo:
             if pr.number == 101:
                 return BenchmarkExample(
                     issue=IssueRef(owner="pallets", repo="flask", number=43),
-                    base_commit_sha="sha",
+                    base_commit_sha="abcdef1234567890abcdef1234567890abcdef12",
                     issue_title="t",
                     issue_body="b",
                     gold_files_all=["b.py"],

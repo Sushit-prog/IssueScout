@@ -148,6 +148,11 @@ def process_pr(
         logger.warning(f"Failed to fetch PR details for PR #{pr.number}: {e}")
         return None
 
+    # Drop if base_commit_sha is missing/empty
+    if not base_commit_sha:
+        logger.debug(f"PR #{pr.number} dropped: base_sha_missing")
+        return None
+
     return pr_to_benchmark_example(
         issue=issue,
         pr=pr,

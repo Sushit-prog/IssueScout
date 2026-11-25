@@ -1,9 +1,10 @@
 """Benchmark example model."""
 
+import re
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from issuescout.models.issue_ref import IssueRef
 
@@ -28,6 +29,18 @@ class ChangedFile(BaseModel):
     locatable_at_base: bool = True
 
 
+BASE_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
+
+
+def _validate_base_sha(v: str) -> str:
+    """Validate base_commit_sha is exactly 40 lowercase hex characters."""
+    if not BASE_SHA_PATTERN.match(v):
+        raise ValueError(
+            "base_commit_sha must be exactly 40 lowercase hex characters"
+        )
+    return v
+
+
 class BenchmarkExample(BaseModel):
     """A single benchmark example from a real GitHub PR."""
 
@@ -45,3 +58,7 @@ class BenchmarkExample(BaseModel):
     pr_opened_at: datetime
     changed_files: list[ChangedFile]
     split_tag: SplitTag
+
+    _validate_base_commit_sha = field_validator("base_commit_sha", mode="before")(
+        _validate_base_sha
+    )
