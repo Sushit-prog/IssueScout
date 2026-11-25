@@ -1,7 +1,7 @@
 """GitHub HTTP client - ONLY place GitHub HTTP calls happen."""
 
-from issuescout.github.client import GitHubClient
 from issuescout.github.cache import ResponseCache
+from issuescout.github.client import GitHubClient
 from issuescout.github.errors import (
     AuthenticationError,
     GitHubAPIError,
@@ -11,12 +11,12 @@ from issuescout.github.errors import (
 )
 from issuescout.github.models import (
     ChangedFileData,
+    FileStatus,
     IssueData,
+    PageInfo,
     PRDetails,
     PRPage,
-    PageInfo,
     RateLimitInfo,
-    FileStatus,
 )
 
 __all__ = [

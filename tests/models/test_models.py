@@ -8,9 +8,11 @@ from pydantic import ValidationError
 from issuescout.models import (
     BenchmarkExample,
     Candidate,
+    ChangedFile,
     Citation,
     IssueRef,
     LocalizationResult,
+    SplitTag,
 )
 
 
@@ -60,13 +62,36 @@ class TestBenchmarkExample:
             base_commit_sha="abc123def456",
             issue_title="Fix bug in login",
             issue_body="Login fails when password is empty",
-            gold_files_changed=["src/auth.py", "tests/test_auth.py"],
+            gold_files_all=["src/auth.py", "tests/test_auth.py"],
+            gold_files_source=["src/auth.py"],
             pr_number=100,
             merged_at=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
+            issue_created_at=datetime(2024, 1, 10, 10, 30, tzinfo=UTC),
+            pr_opened_at=datetime(2024, 1, 12, 10, 30, tzinfo=UTC),
+            changed_files=[
+                ChangedFile(
+                    path="src/auth.py",
+                    status="modified",
+                    additions=10,
+                    deletions=5,
+                    locatable_at_base=True,
+                ),
+                ChangedFile(
+                    path="tests/test_auth.py",
+                    status="added",
+                    additions=20,
+                    deletions=0,
+                    locatable_at_base=False,
+                ),
+            ],
+            split_tag=SplitTag.POST_CUTOFF,
         )
         assert example.issue == issue
         assert example.base_commit_sha == "abc123def456"
         assert example.pr_number == 100
+        assert example.gold_files_all == ["src/auth.py", "tests/test_auth.py"]
+        assert example.gold_files_source == ["src/auth.py"]
+        assert example.split_tag == SplitTag.POST_CUTOFF
 
     def test_validation_rejects_extra_fields(self):
         """Test that extra fields are rejected."""
@@ -76,9 +101,14 @@ class TestBenchmarkExample:
                 base_commit_sha="sha",
                 issue_title="t",
                 issue_body="b",
-                gold_files_changed=[],
+                gold_files_all=[],
+                gold_files_source=[],
                 pr_number=1,
                 merged_at=datetime.now(UTC),
+                issue_created_at=datetime.now(UTC),
+                pr_opened_at=datetime.now(UTC),
+                changed_files=[],
+                split_tag=SplitTag.PRE_CUTOFF,
                 extra_field="bad",
             )
 
@@ -90,9 +120,29 @@ class TestBenchmarkExample:
             base_commit_sha="abc123def456",
             issue_title="Fix bug in login",
             issue_body="Login fails when password is empty",
-            gold_files_changed=["src/auth.py", "tests/test_auth.py"],
+            gold_files_all=["src/auth.py", "tests/test_auth.py"],
+            gold_files_source=["src/auth.py"],
             pr_number=100,
             merged_at=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
+            issue_created_at=datetime(2024, 1, 10, 10, 30, tzinfo=UTC),
+            pr_opened_at=datetime(2024, 1, 12, 10, 30, tzinfo=UTC),
+            changed_files=[
+                ChangedFile(
+                    path="src/auth.py",
+                    status="modified",
+                    additions=10,
+                    deletions=5,
+                    locatable_at_base=True,
+                ),
+                ChangedFile(
+                    path="tests/test_auth.py",
+                    status="added",
+                    additions=20,
+                    deletions=0,
+                    locatable_at_base=False,
+                ),
+            ],
+            split_tag=SplitTag.POST_CUTOFF,
         )
         json_str = example.model_dump_json()
         restored = BenchmarkExample.model_validate_json(json_str)
@@ -106,13 +156,38 @@ class TestBenchmarkExample:
             base_commit_sha="abc123def456",
             issue_title="Fix bug in login",
             issue_body="Login fails when password is empty",
-            gold_files_changed=["src/auth.py", "tests/test_auth.py"],
+            gold_files_all=["src/auth.py", "tests/test_auth.py"],
+            gold_files_source=["src/auth.py"],
             pr_number=100,
             merged_at=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
+            issue_created_at=datetime(2024, 1, 10, 10, 30, tzinfo=UTC),
+            pr_opened_at=datetime(2024, 1, 12, 10, 30, tzinfo=UTC),
+            changed_files=[
+                ChangedFile(
+                    path="src/auth.py",
+                    status="modified",
+                    additions=10,
+                    deletions=5,
+                    locatable_at_base=True,
+                ),
+                ChangedFile(
+                    path="tests/test_auth.py",
+                    status="added",
+                    additions=20,
+                    deletions=0,
+                    locatable_at_base=False,
+                ),
+            ],
+            split_tag=SplitTag.POST_CUTOFF,
         )
         data = example.model_dump()
         restored = BenchmarkExample.model_validate(data)
         assert restored == example
+
+    def test_split_tag_enum(self):
+        """Test SplitTag enum values."""
+        assert SplitTag.PRE_CUTOFF == "pre_cutoff"
+        assert SplitTag.POST_CUTOFF == "post_cutoff"
 
 
 class TestCitation:

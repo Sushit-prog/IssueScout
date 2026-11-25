@@ -42,12 +42,16 @@ class ResponseCache:
             # Check TTL (30 days)
             cached_at = entry.get("cached_at")
             if cached_at:
-                from datetime import datetime, UTC
+                from datetime import datetime
+
                 cached_time = datetime.fromisoformat(cached_at.replace("Z", "+00:00"))
                 if time.time() - cached_time.timestamp() > 30 * 86400:
                     return None
 
-            return entry.get("body")
+            body = entry.get("body")
+            if isinstance(body, dict):
+                return body
+            return None
         except (OSError, json.JSONDecodeError, KeyError):
             return None
 

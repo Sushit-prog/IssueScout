@@ -3,17 +3,12 @@
 import json
 import logging
 import tempfile
-import time
-from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from issuescout.github.cache import ResponseCache
 from issuescout.github.client import GitHubClient
-from issuescout.github.errors import RateLimitedError, SecondaryRateLimitError
-from issuescout.github.models import ChangedFileData, FileStatus, PRDetails
+from issuescout.github.models import ChangedFileData, FileStatus
 
 
 class FakeClock:
@@ -48,7 +43,7 @@ class TestGitHubClient:
             self.clock.advance(seconds)
 
         # Use a fresh cache for each test to avoid cache hits from other tests
-        import tempfile
+
         self.cache_dir = tempfile.mkdtemp()
         self.client = GitHubClient(
             token="ghp_test_token",
@@ -62,6 +57,7 @@ class TestGitHubClient:
     def teardown_method(self) -> None:
         self.client.close()
         import shutil
+
         shutil.rmtree(self.cache_dir, ignore_errors=True)
 
     def test_fetch_pr_files_parses_all_statuses(self) -> None:
@@ -131,7 +127,7 @@ class TestGitHubClient:
         """Test parsing of GraphQL search response."""
         fixture = load_fixture("search_prs_response.json")
 
-        with patch.object(self.client, "_graphql", return_value=fixture) as mock_graphql:
+        with patch.object(self.client, "_graphql", return_value=fixture):
             page = self.client.fetch_merged_prs_page("owner", "repo", per_page=100)
 
         assert len(page.nodes) == 2
@@ -157,9 +153,13 @@ class TestGitHubClient:
         success_response = MagicMock()
         success_response.status_code = 200
         success_response.headers = {"X-RateLimit-Remaining": "4999"}
-        success_response.json.return_value = {"data": {"search": {"nodes": [], "pageInfo": {"hasNextPage": False}, "issueCount": 0}}}
+        success_response.json.return_value = {
+            "data": {"search": {"nodes": [], "pageInfo": {"hasNextPage": False}, "issueCount": 0}}
+        }
 
-        with patch.object(self.client._client, "post", side_effect=[rate_limited_response, success_response]):
+        with patch.object(
+            self.client._client, "post", side_effect=[rate_limited_response, success_response]
+        ):
             result = self.client._graphql("query { test }")
 
         # Should have slept ~60 seconds
@@ -177,9 +177,15 @@ class TestGitHubClient:
         success_response = MagicMock()
         success_response.status_code = 200
         success_response.headers = {}
-        success_response.json.return_value = {"data": {"search": {"nodes": [], "pageInfo": {"hasNextPage": False}, "issueCount": 0}}}
+        success_response.json.return_value = {
+            "data": {"search": {"nodes": [], "pageInfo": {"hasNextPage": False}, "issueCount": 0}}
+        }
 
-        with patch.object(self.client._client, "post", side_effect=[error_response, error_response, success_response]):
+        with patch.object(
+            self.client._client,
+            "post",
+            side_effect=[error_response, error_response, success_response],
+        ):
             result = self.client._graphql("query { test }")
 
         # Should have retried twice with backoff
@@ -197,7 +203,11 @@ class TestGitHubClient:
             {"query": "test"},
             200,
             {"content-type": "application/json"},
-            {"data": {"search": {"nodes": [], "pageInfo": {"hasNextPage": False}, "issueCount": 42}}},
+            {
+                "data": {
+                    "search": {"nodes": [], "pageInfo": {"hasNextPage": False}, "issueCount": 42}
+                }
+            },
         )
 
         client = GitHubClient(
@@ -285,6 +295,7 @@ class TestGitHubClient:
         assert len(cache_files) == 1
 
         import gzip
+
         with gzip.open(cache_files[0], "rt") as f:
             entry = json.load(f)
 
@@ -381,6 +392,7 @@ class TestResponseCache:
 
         # Manually create an old entry
         import gzip
+
         key = cache.make_key("GET", "https://api.github.com/test", {})
         path = cache.cache_dir / f"{key}.json.gz"
         old_entry = {

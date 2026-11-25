@@ -3,9 +3,9 @@
 import json
 import logging
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
-from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import httpx
 
@@ -19,16 +19,15 @@ from issuescout.github.errors import (
 )
 from issuescout.github.graphql import (
     GET_ISSUE,
-    GET_PR_FILES,
     RATE_LIMIT_QUERY,
     SEARCH_MERGED_PRS,
 )
 from issuescout.github.models import (
     ChangedFileData,
     IssueData,
+    PageInfo,
     PRDetails,
     PRPage,
-    PageInfo,
     RateLimitInfo,
 )
 
@@ -74,7 +73,7 @@ class GitHubClient:
 
     def _graphql(self, query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
         """Execute GraphQL query with cache and rate-limit handling."""
-        params = {"query": query}
+        params: dict[str, Any] = {"query": query}
         if variables:
             params["variables"] = variables
 
@@ -114,14 +113,19 @@ class GitHubClient:
 
                 # Parse response
                 try:
-                    body = response.json()
-                except json.JSONDecodeError:
+                    body: dict[str, Any] = response.json()
+                except Exception:
                     body = {"raw": response.text}
 
                 # Cache successful responses
                 if response.status_code == 200:
                     self._cache.set(
-                        method, url, json or params, response.status_code, dict(response.headers), body
+                        method,
+                        url,
+                        json or params,
+                        response.status_code,
+                        dict(response.headers),
+                        body,
                     )
 
                 # Handle errors - 5xx will be retried
@@ -146,13 +150,21 @@ class GitHubClient:
                 last_exc = e
                 if attempt < self._max_retries:
                     delay = self._base_delay * (2**attempt)
-                    logger.warning("Request failed (attempt %d/%d): %s. Retrying in %.1fs",
-                                   attempt + 1, self._max_retries + 1, e, delay)
+                    logger.warning(
+                        "Request failed (attempt %d/%d): %s. Retrying in %.1fs",
+                        attempt + 1,
+                        self._max_retries + 1,
+                        e,
+                        delay,
+                    )
                     self._sleep(delay)
                     continue
-                raise GitHubAPIError(f"Request failed after {self._max_retries + 1} attempts: {last_exc}") from last_exc
+                raise GitHubAPIError(
+                    f"Request failed after {self._max_retries + 1} attempts: {last_exc}",
+                    status=500,
+                ) from last_exc
 
-        raise GitHubAPIError(f"Request failed: {last_exc}") from last_exc
+        raise GitHubAPIError(f"Request failed: {last_exc}", status=500) from last_exc
 
     def _handle_rate_limit(self, response: httpx.Response) -> None:
         """Check and handle rate limit headers."""
@@ -173,7 +185,11 @@ class GitHubClient:
                 body = response.json()
                 message = body.get("message", "").lower()
                 if "secondary rate limit" in message or "rate limit" in message:
-                    reset_at = datetime.fromtimestamp(int(reset_str), tz=UTC) if reset_str else datetime.now(UTC)
+                    reset_at = (
+                        datetime.fromtimestamp(int(reset_str), tz=UTC)
+                        if reset_str
+                        else datetime.now(UTC)
+                    )
                     raise SecondaryRateLimitError(
                         f"Secondary rate limit: {body.get('message', 'Unknown')}",
                         reset_at=reset_at,
@@ -236,7 +252,8 @@ class GitHubClient:
             if not isinstance(node, dict):
                 continue
             closing_issues = [
-                n["number"] for n in node.get("closingIssuesReferences", {}).get("nodes", [])
+                n["number"]
+                for n in node.get("closingIssuesReferences", {}).get("nodes", [])
                 if isinstance(n, dict)
             ]
             pr = PRDetails(
@@ -248,8 +265,12 @@ class GitHubClient:
                 mergeable=node.get("mergeable"),
                 created_at=datetime.fromisoformat(node["createdAt"].replace("Z", "+00:00")),
                 updated_at=datetime.fromisoformat(node["updatedAt"].replace("Z", "+00:00")),
-                closed_at=datetime.fromisoformat(node["closedAt"].replace("Z", "+00:00")) if node.get("closedAt") else None,
-                merged_at=datetime.fromisoformat(node["mergedAt"].replace("Z", "+00:00")) if node.get("mergedAt") else None,
+                closed_at=datetime.fromisoformat(node["closedAt"].replace("Z", "+00:00"))
+                if node.get("closedAt")
+                else None,
+                merged_at=datetime.fromisoformat(node["mergedAt"].replace("Z", "+00:00"))
+                if node.get("mergedAt")
+                else None,
                 base_sha=node.get("baseRefOid", ""),
                 head_sha=node.get("headRefOid", ""),
                 base_ref=node.get("baseRefName", ""),
@@ -283,7 +304,9 @@ class GitHubClient:
             body=issue_data.get("body"),
             created_at=datetime.fromisoformat(issue_data["createdAt"].replace("Z", "+00:00")),
             updated_at=datetime.fromisoformat(issue_data["updatedAt"].replace("Z", "+00:00")),
-            closed_at=datetime.fromisoformat(issue_data["closedAt"].replace("Z", "+00:00")) if issue_data.get("closedAt") else None,
+            closed_at=datetime.fromisoformat(issue_data["closedAt"].replace("Z", "+00:00"))
+            if issue_data.get("closedAt")
+            else None,
             state=issue_data.get("state", ""),
             html_url=issue_data.get("url", ""),
         )
@@ -296,20 +319,22 @@ class GitHubClient:
 
         result = self._rest_get(path, params)
 
-        files = []
+        files: list[ChangedFileData] = []
         for item in result:
             if not isinstance(item, dict):
                 continue
-            files.append(ChangedFileData(
-                filename=item.get("filename", ""),
-                status=item.get("status", "modified"),
-                previous_filename=item.get("previous_filename"),
-                additions=item.get("additions", 0),
-                deletions=item.get("deletions", 0),
-                changes=item.get("changes", 0),
-                sha=item.get("sha"),
-                patch=item.get("patch"),
-            ))
+            files.append(
+                ChangedFileData(
+                    filename=item.get("filename", ""),
+                    status=item.get("status", "modified"),
+                    previous_filename=item.get("previous_filename"),
+                    additions=item.get("additions", 0),
+                    deletions=item.get("deletions", 0),
+                    changes=item.get("changes", 0),
+                    sha=item.get("sha"),
+                    patch=item.get("patch"),
+                )
+            )
 
         return files
 
@@ -319,10 +344,16 @@ class GitHubClient:
         result = self._rest_get(path)
 
         closing_issues = []
-        # Extract closing issues from body text (GraphQL search already gives us this, but REST is fallback)
+        # Extract closing issues from body text (GraphQL search already gives
+        # us this, but REST is fallback)
         if result.get("body"):
             import re
-            for match in re.finditer(r"(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+(?:#(\d+)|(\w+/\w+#\d+))", result["body"], re.IGNORECASE):
+
+            for match in re.finditer(
+                r"(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+(?:#(\d+)|(\w+/\w+#\d+))",
+                result["body"],
+                re.IGNORECASE,
+            ):
                 if match.group(1):
                     closing_issues.append(int(match.group(1)))
 
@@ -335,8 +366,12 @@ class GitHubClient:
             mergeable=result.get("mergeable"),
             created_at=datetime.fromisoformat(result["created_at"].replace("Z", "+00:00")),
             updated_at=datetime.fromisoformat(result["updated_at"].replace("Z", "+00:00")),
-            closed_at=datetime.fromisoformat(result["closed_at"].replace("Z", "+00:00")) if result.get("closed_at") else None,
-            merged_at=datetime.fromisoformat(result["merged_at"].replace("Z", "+00:00")) if result.get("merged_at") else None,
+            closed_at=datetime.fromisoformat(result["closed_at"].replace("Z", "+00:00"))
+            if result.get("closed_at")
+            else None,
+            merged_at=datetime.fromisoformat(result["merged_at"].replace("Z", "+00:00"))
+            if result.get("merged_at")
+            else None,
             base_sha=result.get("base", {}).get("sha", ""),
             head_sha=result.get("head", {}).get("sha", ""),
             base_ref=result.get("base", {}).get("ref", ""),
@@ -363,5 +398,10 @@ class GitHubClient:
     def __enter__(self) -> "GitHubClient":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object | None,
+    ) -> None:
         self.close()

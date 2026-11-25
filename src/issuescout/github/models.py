@@ -1,19 +1,19 @@
 """Typed request/response models for GitHub API."""
 
 from datetime import datetime
-from enum import Enum
-from typing import Annotated, Any, Literal
+from enum import StrEnum
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
-class PRState(str, Enum):
+class PRState(StrEnum):
     OPEN = "open"
     CLOSED = "closed"
     MERGED = "merged"
 
 
-class FileStatus(str, Enum):
+class FileStatus(StrEnum):
     ADDED = "added"
     MODIFIED = "modified"
     REMOVED = "removed"
