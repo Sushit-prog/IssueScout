@@ -87,3 +87,7 @@ configs/         # Non-secret settings (committed)
 3. Implement
 4. Run quality checks locally
 5. Commit with clear message
+
+## Tool Execution Rules
+- Always run tools via `uv run` (never bare `python`, `pytest`, `ruff`, or `mypy`)
+- One commit per logical unit; show `git diff --stat` after each commit
