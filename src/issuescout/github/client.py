@@ -33,9 +33,6 @@ from issuescout.github.models import (
 
 logger = logging.getLogger(__name__)
 
-# Sentinel token for leak detection
-_TOKEN_SENTINEL = "ghp_SENTINEL_TOKEN_FOR_TESTING"
-
 
 class GitHubClient:
     """Synchronous GitHub API client with caching and rate-limit handling."""
